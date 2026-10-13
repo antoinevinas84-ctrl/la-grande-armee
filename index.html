@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>La Grande Armée — Batailles de Napoléon</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ================= HUD DE BATAILLE ================= -->
+  <div id="battle-ui" class="hidden">
+
+    <header id="topbar">
+      <div class="tb-left">
+        <button id="btn-menu" class="tb-btn" title="Échap">&#9776;</button>
+        <div class="tb-title">
+          <h1 id="tb-campaign">Austerlitz</h1>
+          <span id="tb-date">2 décembre 1805</span>
+        </div>
+      </div>
+      <div class="tb-center">
+        <div id="tb-objective" class="objective">Détruire l'armée ennemie</div>
+      </div>
+      <div class="tb-right">
+        <div class="stat-box"><span class="stat-lbl">Temps</span><span id="tb-clock" class="stat-val">00:00</span></div>
+        <div class="stat-box"><span class="stat-lbl">Force fr.</span><span id="tb-str" class="stat-val">—</span></div>
+        <div class="stat-box enemy"><span class="stat-lbl">Force adv.</span><span id="tb-ene" class="stat-val">—</span></div>
+        <div class="speed-group">
+          <button class="sp-btn" data-speed="0" id="btn-pause" title="Espace">&#10073;&#10073;</button>
+          <button class="sp-btn" data-speed="1">&#9654;</button>
+          <button class="sp-btn" data-speed="2">&#9654;&#9654;</button>
+          <button class="sp-btn" data-speed="3">&#9654;&#9654;&#9654;</button>
+        </div>
+      </div>
+    </header>
+
+    <aside id="side-panel">
+      <div id="unit-card" class="card hidden">
+        <div class="card-head">
+          <span id="uc-glyph" class="glyph"></span>
+          <div>
+            <div id="uc-name" class="uc-name">—</div>
+            <div id="uc-class" class="uc-sub">—</div>
+          </div>
+        </div>
+        <div class="bar-row">
+          <label>Effectif</label>
+          <div class="bar"><i id="uc-hp" style="width:100%"></i></div>
+          <span id="uc-hp-txt" class="bar-txt">100</span>
+        </div>
+        <div class="bar-row">
+          <label>Morale</label>
+          <div class="bar morale"><i id="uc-mor" style="width:100%"></i></div>
+          <span id="uc-mor-txt" class="bar-txt">100</span>
+        </div>
+        <div class="bar-row">
+          <label>Fatigue</label>
+          <div class="bar fatigue"><i id="uc-fat" style="width:0%"></i></div>
+          <span id="uc-fat-txt" class="bar-txt">0</span>
+        </div>
+        <div id="uc-status" class="uc-status">En marche</div>
+        <div id="uc-traits" class="uc-traits"></div>
+        <div id="uc-desc" class="uc-desc"></div>
+      </div>
+
+      <div id="aura-card" class="card hidden">
+        <h3>Présence impériale</h3>
+        <div id="aura-body" class="aura-body"></div>
+      </div>
+
+      <div id="legend" class="card">
+        <h3>Symboles</h3>
+        <ul class="legend">
+          <li><span class="lg" data-g="INF"></span>Infanterie</li>
+          <li><span class="lg" data-g="CAV"></span>Cavalerie</li>
+          <li><span class="lg" data-g="ART"></span>Artillerie</li>
+          <li><span class="lg" data-g="SAP"></span>Sapeur / unité de choc</li>
+          <li><span class="lg gold" data-g="CMD"></span>Commandant (officier)</li>
+          <li><span class="lg silver" data-g="NCO"></span>Chef de troupe (s.-officier)</li>
+          <li><span class="lg emp" data-g="EMP"></span>Napoléon</li>
+        </ul>
+      </div>
+    </aside>
+
+    <div id="banner" class="banner hidden"></div>
+
+    <footer id="bottombar">
+      <div id="roster" class="roster"></div>
+      <div class="actions">
+        <button id="btn-aura" class="abtn aura" title="Touche E">
+          <span class="abtn-glyph">&#9733;</span>
+          <span class="abtn-lbl">Présence impériale<small>E</small></span>
+        </button>
+        <button id="btn-hold" class="abtn" title="H — tenir la position">
+          <span class="abtn-glyph">&#9632;</span><span class="abtn-lbl">Tenir<small>H</small></span>
+        </button>
+        <button id="btn-charge" class="abtn" title="C — charge générale">
+          <span class="abtn-glyph">&#9889;</span><span class="abtn-lbl">Charge<small>C</small></span>
+        </button>
+        <button id="btn-mute" class="abtn small" title="Son">&#9834;</button>
+      </div>
+    </footer>
+
+    <div id="tooltip" class="tooltip hidden"></div>
+  </div>
+
+  <!-- ================= MENU PRINCIPAL ================= -->
+  <div id="menu" class="screen">
+    <div class="menu-bg"></div>
+    <div class="menu-inner">
+      <h1 class="title">LA GRANDE ARMÉE</h1>
+      <p class="subtitle">Batailles de Napoléon — 1805 · 1815</p>
+      <div class="title-rule"><span>&#10022;</span></div>
+
+      <div id="campaign-list" class="campaign-list"></div>
+
+      <div class="menu-foot">
+        <button id="btn-howto" class="mbtn ghost">Commandes &amp; règles</button>
+        <button id="btn-reset" class="mbtn ghost">Réinitialiser la progression</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= BRIEFING ================= -->
+  <div id="briefing" class="screen hidden">
+    <div class="menu-inner wide">
+      <div class="brief-head">
+        <span id="br-num" class="brief-num">Campagne I</span>
+        <h2 id="br-name">Bataille d'Austerlitz</h2>
+        <span id="br-date" class="brief-date">2 décembre 1805</span>
+      </div>
+      <div class="brief-cols">
+        <div class="brief-text" id="br-text"></div>
+        <div class="brief-side">
+          <div class="card">
+            <h3>Forces en présence</h3>
+            <div id="br-forces" class="forces"></div>
+          </div>
+          <div class="card">
+            <h3>Objectifs</h3>
+            <ul id="br-obj" class="obj-list"></ul>
+          </div>
+          <div class="card">
+            <h3>Commandement</h3>
+            <div id="br-cmd" class="cmd-list"></div>
+          </div>
+        </div>
+      </div>
+      <div class="brief-actions">
+        <button id="btn-back" class="mbtn ghost">Retour</button>
+        <button id="btn-deploy" class="mbtn primary">Phase de déploiement &rarr;</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= DÉPLOIEMENT ================= -->
+  <div id="deploy-screen" class="screen hidden">
+    <div class="deploy-head">
+      <h2>Déploiement — <span id="dp-name">Austerlitz</span></h2>
+      <p id="dp-hint">Glissez vos unités dans la zone bleue. <b>Clic droit</b> : menu d'ordres pendant la bataille.</p>
+      <div class="dp-actions">
+        <button id="btn-dp-auto" class="mbtn ghost">Déploiement automatique</button>
+        <button id="btn-dp-clear" class="mbtn ghost">Réinitialiser</button>
+        <button id="btn-dp-start" class="mbtn primary">ENGAGER LA BATAILLE</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= RÉSULTAT ================= -->
+  <div id="result" class="screen hidden">
+    <div class="menu-inner narrow">
+      <div id="res-banner" class="res-banner">VICTOIRE</div>
+      <div id="res-rank" class="res-rank"></div>
+      <p id="res-text" class="res-text"></p>
+      <div id="res-stats" class="res-stats"></div>
+      <div class="brief-actions">
+        <button id="btn-res-menu" class="mbtn ghost">Carte des campagnes</button>
+        <button id="btn-res-next" class="mbtn primary">Campagne suivante</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= AIDE ================= -->
+  <div id="howto" class="screen hidden">
+    <div class="menu-inner wide">
+      <h2 class="title sm">Commandes &amp; règles</h2>
+      <div class="howto-cols">
+        <div class="card">
+          <h3>Commandes</h3>
+          <table class="keys">
+            <tr><td><b>Clic gauche</b></td><td>Sélectionner une unité</td></tr>
+            <tr><td><b>Glisser</b></td><td>Sélection multiple</td></tr>
+            <tr><td><b>Clic droit</b></td><td>Ordre de mouvement / d'attaque</td></tr>
+            <tr><td><b>A + clic</b></td><td>Attaque-mouvement</td></tr>
+            <tr><td><b>Espace</b></td><td>Pause / reprendre</td></tr>
+            <tr><td><b>1 2 3</b></td><td>Vitesse de jeu</td></tr>
+            <tr><td><b>H</b></td><td>Tenir la position</td></tr>
+            <tr><td><b>C</b></td><td>Charge générale (cavalerie)</td></tr>
+            <tr><td><b>E</b></td><td>Présence impériale</td></tr>
+            <tr><td><b>+ / −</b></td><td>Zoom · <b>molette</b></td></tr>
+            <tr><td><b>Échap</b></td><td>Menu</td></tr>
+          </table>
+        </div>
+        <div>
+          <div class="card">
+            <h3>Combat</h3>
+            <p class="p">Les unités s'engagent automatiquement dès qu'un ennemi entre dans leur portée. Les officiers relèvent le moral, les unités en surcharge sont détruites vite, les unités qui rompent fuient — et peuvent être capturées.</p>
+          </div>
+          <div class="card">
+            <h3>Le terrain</h3>
+            <p class="p">Les forêts, buttes et villages offrent un couvert (défense +25 à +35&nbsp;%) mais ralentissent. Les routes accélistent. Les rivières bloquent cavalerie et artillerie <b>sauf aux ponts</b> ; infanterie et sapeurs peuvent les franchir lentement.</p>
+          </div>
+          <div class="card">
+            <h3>Napoléon en personne</h3>
+            <p class="p">Tant que l'Empereur tient le champ de bataille, toutes les unités fran&ccedil;aises gagnent <b>+22&nbsp;% de combat</b> et <b>+15 de moral</b>, et le moral se reconstitue bien plus vite dans un rayon de 320&nbsp;px autour de lui. La capacité <b>Pr&eacute;sence imp&eacute;riale</b> (E) galvanise l'arm&eacute;e enti&egrave;re pendant 18&nbsp;s.</p>
+          </div>
+          <div class="card">
+            <h3>Officiers &amp; sous-officiers</h3>
+            <p class="p"><b>Commandant</b> (grande étoile dorée) : +18&nbsp;% d'attaque et coordination autour de lui ; sa mort effondre le moral voisin.<br><b>Chef de troupe</b> (petite étoile argentée) : +30&nbsp;% de défense, retarde la rupture, stabilise les unités.</p>
+          </div>
+        </div>
+      </div>
+      <div class="brief-actions"><button id="btn-howto-close" class="mbtn primary">Compris</button></div>
+    </div>
+  </div>
+
+  <canvas id="canvas"></canvas>
+</div>
+
+<script src="js/core.js"></script>
+<script src="js/data.js"></script>
+<script src="js/map.js"></script>
+<script src="js/entity.js"></script>
+<script src="js/combat.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/render.js"></script>
+<script src="js/input.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>

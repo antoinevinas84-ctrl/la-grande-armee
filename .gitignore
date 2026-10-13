@@ -1,0 +1,17 @@
+# Fichiers système / éditeurs
+Thumbs.db
+desktop.ini
+.DS_Store
+.vscode/
+.idea/
+*.swp
+
+# Dépendances (le jeu n'en a aucune, au cas où)
+node_modules/
+
+# Sauvegardes
+*.bak
+*~
+
+# Divers
+*.log
