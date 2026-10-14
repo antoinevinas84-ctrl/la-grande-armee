@@ -148,6 +148,99 @@ table.keys td{padding:5px 4px;border-bottom:1px solid rgba(255,255,255,.07);colo
 table.keys td:first-child{width:40%;color:var(--gold-2)}
 
 /* ============================================================
+   BAC À SABLE — scénarios personnalisés
+   ============================================================ */
+#sandbox-ui{position:absolute;inset:0;z-index:22;pointer-events:none}
+.sb-panel{
+  position:absolute;pointer-events:auto;background:var(--panel);border:1px solid var(--line);
+  border-radius:6px;padding:11px 12px;backdrop-filter:blur(3px);box-shadow:var(--shadow);
+}
+#sb-tools{left:10px;top:62px;width:196px}
+#sb-palette{right:10px;top:62px;width:214px}
+.sb-panel h3{font-family:var(--serif);font-size:11.5px;letter-spacing:.2em;color:var(--gold);
+  text-transform:uppercase;margin-bottom:8px}
+.sb-panel h3.mt{margin-top:12px}
+
+.sb-tools{display:flex;flex-direction:column;gap:4px;max-height:44vh;overflow-y:auto}
+.sb-tool{
+  text-align:left;padding:6px 9px;border-radius:4px;cursor:pointer;font-size:12px;
+  background:rgba(255,255,255,.05);border:1px solid transparent;color:#ded3b6;transition:.12s;
+}
+.sb-tool:hover{background:rgba(255,255,255,.12)}
+.sb-tool.active{background:linear-gradient(180deg,#6b5522,#3a2e12);border-color:var(--gold);color:#fff3cf;font-weight:600}
+
+.sb-row{margin-top:10px}
+.sb-row.inline{margin-top:10px}
+.sb-row label{display:block;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--txt-dim);margin-bottom:4px}
+.sb-row input[type=range]{width:100%;accent-color:var(--gold);height:14px}
+.sb-val{font-size:10px;color:var(--txt-dim);float:right;margin-top:-16px}
+.sb-hint{margin-top:10px;font-size:10.5px;line-height:1.5;color:#a89e85;font-style:italic}
+.sb-hint b{color:var(--gold-2);font-style:normal}
+
+.sb-sides{display:flex;gap:5px;margin-bottom:9px}
+.sb-sides.small button{font-size:10px;padding:4px 8px}
+.sb-side{flex:1;padding:6px;border-radius:4px;cursor:pointer;font-size:11.5px;
+  background:rgba(255,255,255,.05);border:1px solid transparent;color:#ded3b6;transition:.12s}
+.sb-side.fr.active{background:rgba(58,95,208,.35);border-color:var(--blue-l);color:#cfe0ff}
+.sb-side.en.active{background:rgba(207,58,44,.35);border-color:var(--red-l);color:#ffd4cb}
+
+.sb-units{display:flex;flex-direction:column;gap:4px}
+.sb-unit{display:flex;align-items:center;gap:7px;padding:5px 8px;border-radius:4px;cursor:pointer;
+  background:rgba(255,255,255,.05);border:1px solid transparent;font-size:12px;color:#ded3b6;transition:.12s}
+.sb-unit:hover{background:rgba(255,255,255,.12)}
+.sb-unit.active{background:linear-gradient(180deg,#6b5522,#3a2e12);border-color:var(--gold);color:#fff3cf}
+.sb-unit span.glyph{display:flex;width:20px;height:20px;flex:0 0 20px}
+
+.sb-quality{display:flex;flex-wrap:wrap;gap:4px}
+.sb-q{padding:4px 8px;border-radius:11px;cursor:pointer;font-size:10.5px;
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);color:#ded3b6}
+.sb-q.active{background:var(--gold);color:#2a1f08;border-color:var(--gold-2);font-weight:700}
+
+#sb-bar{
+  position:absolute;left:0;right:0;bottom:0;min-height:64px;display:flex;align-items:center;gap:12px;
+  padding:8px 14px;pointer-events:auto;
+  background:linear-gradient(0deg,rgba(10,9,6,.96),rgba(10,9,6,.55) 70%,transparent);
+}
+.sb-name{display:flex;flex-direction:column;gap:3px;min-width:230px}
+.sb-name input{
+  background:rgba(0,0,0,.45);border:1px solid var(--line);border-radius:4px;color:var(--parch);
+  font-family:var(--serif);font-size:15px;padding:5px 9px;width:230px;
+}
+.sb-name input:focus{outline:none;border-color:var(--gold)}
+.sb-counts{font-size:10.5px;color:var(--txt-dim);letter-spacing:.06em}
+.sb-counts b{color:var(--blue-l)}
+.sb-counts i{color:var(--red-l);font-style:normal}
+.sb-actions{margin-left:auto;display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.sb-btn{
+  font-family:var(--serif);font-size:12.5px;letter-spacing:.1em;text-transform:uppercase;
+  padding:8px 15px;border-radius:4px;cursor:pointer;border:1px solid var(--line);
+  background:linear-gradient(180deg,rgba(45,37,20,.95),rgba(20,16,9,.95));color:var(--parch);transition:.14s;
+}
+.sb-btn:hover{border-color:var(--gold);transform:translateY(-2px)}
+.sb-btn.primary{background:linear-gradient(180deg,#6b5522,#40320f);border-color:var(--gold-2);color:#fff3cf;font-weight:700}
+.sb-btn.ghost{border-color:rgba(255,255,255,.18);color:var(--txt-dim)}
+.sb-btn.on{background:linear-gradient(180deg,#a07e28,#5d4715);color:#fff}
+
+.sb-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;margin:18px 0;text-align:left}
+.sb-card{background:linear-gradient(180deg,rgba(48,39,24,.92),rgba(24,20,12,.94));
+  border:1px solid var(--line);border-radius:6px;padding:12px 14px}
+.sb-card h4{font-family:var(--serif);font-size:16px;color:var(--parch);margin-bottom:4px}
+.sb-card .meta{font-size:11px;color:var(--txt-dim);margin-bottom:10px}
+.sb-card .row{display:flex;gap:6px}
+.sb-card button{flex:1;font-size:11px;padding:5px;border-radius:4px;cursor:pointer;
+  background:rgba(255,255,255,.07);border:1px solid var(--line);color:var(--parch)}
+.sb-card button:hover{background:rgba(255,255,255,.16)}
+.sb-empty{text-align:center;color:var(--txt-dim);font-style:italic;padding:26px;grid-column:1/-1}
+
+.mbtn.big{font-size:16px;padding:14px 34px}
+
+/* En mode bac à sable, l'ATH classique laisse la place aux panneaux d'édition */
+body.mode-sandbox #side-panel,
+body.mode-sandbox #bottombar,
+body.mode-sandbox #deploy-screen{display:none !important}
+
+/* ============================================================
    HUD DE BATAILLE
    ============================================================ */
 #battle-ui{position:absolute;inset:0;z-index:20;pointer-events:none}

@@ -55,7 +55,7 @@ const UI = (function () {
 
   /* ---------- écran courant ---------- */
   function show(name) {
-    for (const id of ['menu', 'briefing', 'result', 'howto']) {
+    for (const id of ['menu', 'briefing', 'result', 'howto', 'sandbox-ui', 'sb-loadscreen']) {
       $(id).classList.add('hidden');
     }
     $('deploy-screen').classList.add('hidden');
@@ -65,6 +65,9 @@ const UI = (function () {
     } else if (name === 'deploy') {
       $('battle-ui').classList.remove('hidden');
       $('deploy-screen').classList.remove('hidden');
+    } else if (name === 'sandbox') {
+      $('battle-ui').classList.remove('hidden');
+      $('sandbox-ui').classList.remove('hidden');
     } else if (name) {
       $(name).classList.remove('hidden');
     }
@@ -330,7 +333,110 @@ const UI = (function () {
   }
 
   /* ---------- légende ---------- */
-  function buildLegend() {
+  /* ============================================================
+   Bac à sable — panneaux de l'éditeur
+   ============================================================ */
+function buildSandboxPanels(sb) {
+  const tl = $('sb-tool-list');
+  tl.innerHTML = '';
+  for (const t of sb.tools) {
+    const b = document.createElement('button');
+    b.className = 'sb-tool' + (sb.tool === t.key ? ' active' : '');
+    b.textContent = t.label;
+    b.dataset.tool = t.key;
+    b.addEventListener('click', () => { sb.tool = t.key; buildSandboxPanels(sb); });
+    tl.appendChild(b);
+  }
+  $('sb-hint').textContent = sb.hint();
+  $('sb-fortside-row').style.display = sb.tool === 'fort' ? '' : 'none';
+
+  const ul = $('sb-unit-list');
+  ul.innerHTML = '';
+  for (const u of SANDBOX_UNITS) {
+    const b = document.createElement('div');
+    b.className = 'sb-unit' + (sb.tool === 'unit' && sb.cls === u.key ? ' active' : '');
+    b.innerHTML = '<span class="glyph">' + glyphSVG(u.key, sb.side === 'fr' ? COL.frLight : COL.enLight) + '</span><span>' + u.label + '</span>';
+    b.addEventListener('click', () => { sb.tool = 'unit'; sb.cls = u.key; buildSandboxPanels(sb); });
+    ul.appendChild(b);
+  }
+  for (const b of document.querySelectorAll('#sb-palette .sb-side[data-side]')) b.classList.toggle('active', b.dataset.side === sb.side);
+  for (const b of document.querySelectorAll('#sb-palette .sb-side[data-fortside]')) b.classList.toggle('active', b.dataset.fortside === sb.fortSide);
+
+  const ql = $('sb-quality');
+  ql.innerHTML = '';
+  for (const key of ['conscript', 'line', 'veteran', 'guard', 'cossack']) {
+    const b = document.createElement('button');
+    b.className = 'sb-q' + (sb.quality === key ? ' active' : '');
+    b.textContent = QUALITY[key].label;
+    b.addEventListener('click', () => { sb.quality = key; buildSandboxPanels(sb); });
+    ql.appendChild(b);
+  }
+
+  $('sb-brush').value = sb.brush;
+  $('sb-brush-val').textContent = sb.brush;
+  $('sb-wallw').value = sb.wallW;
+  $('sb-wallw-val').textContent = sb.wallW;
+  if (document.activeElement !== $('sb-title')) $('sb-title').value = sb.name || 'Mon scénario';
+
+  updateSandboxCounts();
+  syncSandboxBar();
+}
+
+/* ---------- compteurs et barre du bac à sable ---------- */
+function updateSandboxCounts() {
+  const g = Game;
+  if (!g.world) return;
+  const fr = g.world.units.filter((u) => u.side === 'fr').length;
+  const en = g.world.units.filter((u) => u.side === 'en').length;
+  $('sb-counts').innerHTML = '<b>' + fr + '</b> unités françaises · <i>' + en + '</i> adverses · ' +
+    g.world.map.features.length + ' éléments de décor';
+}
+
+function syncSandboxBar() {
+  const g = Game;
+  if (!g || !g.world) return;
+  document.body.classList.add('mode-sandbox');
+  const battle = g.world.phase === 'battle';
+  $('sb-fight').hidden = battle;
+  $('sb-edit').hidden = !battle;
+  $('sb-finish').hidden = !battle;
+  $('sb-clear').hidden = battle;
+  $('sb-save').hidden = battle;
+  $('sb-load').hidden = battle;
+  $('sb-title').readOnly = battle;
+  $('sb-tools').classList.toggle('compact', battle);
+}
+
+/* ---------- scénarios enregistrés ---------- */
+function buildSandboxHome() {
+  const host = $('sb-list');
+  host.innerHTML = '';
+  const list = Sandbox.list();
+  if (!list.length) {
+    host.innerHTML = '<div class="sb-empty">Aucun scénario enregistré pour l\'instant. ' +
+      'Composez votre champ de bataille, puis cliquez sur « Sauvegarder ».</div>';
+    return;
+  }
+  for (const r of list) {
+    const el = document.createElement('div');
+    el.className = 'sb-card';
+    const d = new Date(r.savedAt);
+    el.innerHTML = '<h4>' + r.name + '</h4>' +
+      '<div class="meta">' + r.units.length + ' unités · ' + r.features.length + ' éléments de décor<br>' +
+      d.toLocaleDateString('fr-FR') + ' à ' +
+      d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) + '</div>' +
+      '<div class="row"><button data-a="load">Charger</button><button data-a="del">Supprimer</button></div>';
+    el.querySelector('[data-a=load]').addEventListener('click', () => {
+      $('sb-loadscreen').classList.add('hidden');
+      Game.openSandbox(r);
+    });
+    el.querySelector('[data-a=del]').addEventListener('click', () => { Sandbox.delete(r.name); buildSandboxHome(); });
+    host.appendChild(el);
+  }
+}
+
+/* ---------- légende ---------- */
+function buildLegend() {
     for (const el of document.querySelectorAll('#legend .lg')) {
       const k = el.dataset.g;
       let col = COL.frLight;
@@ -344,5 +450,6 @@ const UI = (function () {
   return {
     $, show, buildCampaignList, fillBriefing, buildRoster, syncRoster, syncUnitCard,
     syncAuraCard, syncTopbar, banner, tooltip, result, glyphSVG, strength, roman, buildLegend,
+    buildSandboxPanels, buildSandboxHome, updateSandboxCounts, syncSandboxBar,
   };
 })();

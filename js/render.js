@@ -258,6 +258,9 @@ const Renderer = {
     /* --- carte --- */
     world.map.draw(g);
 
+    /* --- surimpressions de l'éditeur --- */
+    if (world.phase === 'sandbox') this.editorOverlay(g, world);
+
     /* --- zones de déploiement --- */
     if (world.phase === 'deploy') {
       this.deployZone(g, world, world.camp.deploy.fr, '#3a5fd0');
@@ -394,7 +397,91 @@ const Renderer = {
     g.fillRect(0, 0, window.innerWidth, window.innerHeight);
   },
 
-  deployZone(g, world, z, color) {
+  /* ---------- surimpressions du bac à sable ---------- */
+editorOverlay(g, world) {
+  const sb = Sandbox;
+  const x = sb.hoverX, y = sb.hoverY;
+  if (!x && !y) return;
+
+  g.save();
+
+  // grille discrète pour situer le curseur
+  g.strokeStyle = 'rgba(255,255,255,0.06)';
+  g.lineWidth = 1;
+  const step = 80;
+  const x0 = Math.floor((x - 400) / step) * step, x1 = x + 400;
+  const y0 = Math.floor((y - 300) / step) * step, y1 = y + 300;
+  g.beginPath();
+  for (let gx = x0; gx <= x1; gx += step) { g.moveTo(gx, y0); g.lineTo(gx, y1); }
+  for (let gy = y0; gy <= y1; gy += step) { g.moveTo(x0, gy); g.lineTo(x1, gy); }
+  g.stroke();
+
+  // tracé en cours
+  if (sb.drag) {
+    const col = sb.drag.type === 'wall' ? 'rgba(210,180,120,0.95)'
+      : sb.drag.type === 'river' ? 'rgba(110,180,240,0.95)' : 'rgba(230,210,160,0.95)';
+    g.strokeStyle = col;
+    g.lineWidth = sb.drag.type === 'wall' ? sb.wallW : (sb.drag.type === 'river' ? 12 : 7);
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    g.beginPath();
+    g.moveTo(sb.drag.pts[0][0], sb.drag.pts[0][1]);
+    for (let i = 1; i < sb.drag.pts.length; i++) g.lineTo(sb.drag.pts[i][0], sb.drag.pts[i][1]);
+    g.lineTo(x, y);
+    g.stroke();
+    g.strokeStyle = 'rgba(255,255,255,0.7)'; g.lineWidth = 1.5;
+    g.setLineDash([6, 5]);
+    g.stroke();
+    g.setLineDash([]);
+  }
+
+  // pinceau / zone d'action
+  if (sb.tool === 'paint' || sb.tool === 'water') {
+    const r = Math.max(10, sb.brush * 0.5);
+    const col = sb.tool === 'water' ? 'rgba(90,160,235,0.9)' : 'rgba(220,235,160,0.9)';
+    g.strokeStyle = col; g.lineWidth = 2;
+    g.beginPath(); g.arc(x, y, r, 0, 6.2832); g.stroke();
+    g.globalAlpha = 0.18; g.fillStyle = col; g.fill(); g.globalAlpha = 1;
+  } else if (sb.tool === 'unit') {
+    const p = world.map.nearestFree(x, y, sb.cls, 240);
+    g.strokeStyle = sb.side === 'fr' ? 'rgba(143,176,255,0.95)' : 'rgba(255,154,134,0.95)';
+    g.lineWidth = 2; g.setLineDash([5, 4]);
+    g.beginPath(); g.arc(p.x, p.y, CLASSES[sb.cls].radius + 9, 0, 6.2832); g.stroke();
+    g.setLineDash([]);
+    g.beginPath();
+    g.moveTo(p.x - 14, p.y); g.lineTo(p.x + 14, p.y);
+    g.moveTo(p.x, p.y - 14); g.lineTo(p.x, p.y + 14);
+    g.stroke();
+  } else if (sb.tool === 'erase') {
+    g.strokeStyle = 'rgba(255,120,100,0.9)'; g.lineWidth = 2;
+    g.beginPath(); g.arc(x, y, 22, 0, 6.2832); g.stroke();
+    g.beginPath(); g.moveTo(x - 11, y - 11); g.lineTo(x + 11, y + 11); g.stroke();
+  } else if (sb.tool === 'select') {
+    const u = world.hover;
+    if (u) {
+      g.strokeStyle = 'rgba(255,255,255,0.7)'; g.lineWidth = 1.5; g.setLineDash([4, 4]);
+      g.beginPath(); g.arc(u.x, u.y, u.def.radius + 8, 0, 6.2832); g.stroke();
+      g.setLineDash([]);
+    }
+  }
+
+  // aide contextuelle
+  const label = sb.tool === 'fort'
+    ? (sb.fortSide === 'fr' ? 'Redoute française' : 'Redoute adverse')
+    : sb.tool === 'unit' ? CLASSES[sb.cls].name + (sb.side === 'fr' ? ' (Français)' : ' (Adverse)') : '';
+  if (label) {
+    g.font = '600 12px "Segoe UI", sans-serif';
+    g.textAlign = 'left';
+    const w = g.measureText(label).width + 14;
+    g.fillStyle = 'rgba(12,10,6,0.85)';
+    g.fillRect(x + 16, y - 30, w, 20);
+    g.fillStyle = '#f0e6cc';
+    g.fillText(label, x + 23, y - 16);
+  }
+
+  g.restore();
+},
+
+deployZone(g, world, z, color) {
     g.save();
     g.globalAlpha = 0.14;
     g.fillStyle = color;

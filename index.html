@@ -107,6 +107,73 @@
     <div id="tooltip" class="tooltip hidden"></div>
   </div>
 
+  <!-- ================= BAC À SABLE ================= -->
+  <div id="sandbox-ui" class="hidden">
+
+    <aside id="sb-tools" class="sb-panel">
+      <h3>Outils</h3>
+      <div id="sb-tool-list" class="sb-tools"></div>
+      <div class="sb-row">
+        <label>Taille du pinceau</label>
+        <input id="sb-brush" type="range" min="16" max="140" value="46">
+        <span id="sb-brush-val" class="sb-val">46</span>
+      </div>
+      <div class="sb-row">
+        <label>Épaisseur du mur</label>
+        <input id="sb-wallw" type="range" min="6" max="34" value="14">
+        <span id="sb-wallw-val" class="sb-val">14</span>
+      </div>
+      <p id="sb-hint" class="sb-hint"></p>
+    </aside>
+
+    <aside id="sb-palette" class="sb-panel">
+      <h3>Troupes</h3>
+      <div class="sb-sides">
+        <button class="sb-side fr active" data-side="fr">Français</button>
+        <button class="sb-side en" data-side="en">Adversaire</button>
+      </div>
+      <div id="sb-unit-list" class="sb-units"></div>
+      <h3 class="mt">Qualité</h3>
+      <div id="sb-quality" class="sb-quality"></div>
+      <div class="sb-row inline" id="sb-fortside-row">
+        <label>Camp de la redoute</label>
+        <div class="sb-sides small">
+          <button class="sb-side fr active" data-fortside="fr">Français</button>
+          <button class="sb-side en" data-fortside="en">Adverse</button>
+        </div>
+      </div>
+      <p class="sb-hint">Choisissez l'outil <b>Ajouter une troupe</b>, puis cliquez sur la carte.
+        <b>Maj</b> + clic inverse le camp.</p>
+    </aside>
+
+    <footer id="sb-bar">
+      <div class="sb-name">
+        <input id="sb-title" type="text" value="Mon scénario" spellcheck="false">
+        <span id="sb-counts" class="sb-counts"></span>
+      </div>
+      <div class="sb-actions">
+        <button id="sb-clear" class="sb-btn">Tout effacer</button>
+        <button id="sb-save" class="sb-btn">Sauvegarder</button>
+        <button id="sb-load" class="sb-btn">Charger</button>
+        <button id="sb-edit" class="sb-btn" hidden>Retour à l'édition</button>
+        <button id="sb-fight" class="sb-btn primary">Lancer le combat</button>
+        <button id="sb-finish" class="sb-btn" hidden>Terminer</button>
+        <button id="sb-exit" class="sb-btn ghost">Quitter</button>
+      </div>
+    </footer>
+
+    <div id="sb-loadscreen" class="screen hidden">
+      <div class="menu-inner wide">
+        <h2 class="title sm">Scénarios enregistrés</h2>
+        <div id="sb-list" class="sb-list"></div>
+        <div class="brief-actions">
+          <button id="sb-load-close" class="mbtn ghost">Fermer</button>
+          <button id="sb-load-new" class="mbtn primary">Nouveau scénario vierge</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ================= MENU PRINCIPAL ================= -->
   <div id="menu" class="screen">
     <div class="menu-bg"></div>
@@ -117,6 +184,9 @@
 
       <div id="campaign-list" class="campaign-list"></div>
 
+      <div class="menu-foot">
+        <button id="btn-sandbox" class="mbtn primary big">Scénarios personnalisés — bac à sable</button>
+      </div>
       <div class="menu-foot">
         <button id="btn-howto" class="mbtn ghost">Commandes &amp; règles</button>
         <button id="btn-reset" class="mbtn ghost">Réinitialiser la progression</button>
@@ -214,6 +284,14 @@
             <p class="p">Les forêts, buttes et villages offrent un couvert (défense +25 à +35&nbsp;%) mais ralentissent. Les routes accélistent. Les rivières bloquent cavalerie et artillerie <b>sauf aux ponts</b> ; infanterie et sapeurs peuvent les franchir lentement.</p>
           </div>
           <div class="card">
+            <h3>Le bac à sable</h3>
+            <p class="p">Le menu principal propose un mode <b>Scénarios personnalisés</b> : une carte
+            vierge où tout se modifie — terrain peint, <b>murs infranchissables</b> pour batir une forteresse,
+            rivières et ponts, redoutes, villages, et placement libre des troupes de chaque camp.
+            Le combat qui s'ensuit n'a <b>aucune limite de temps</b>, et l'on peut ajouter des renforts
+            en plein combat pour faire grossir la bataille. Les scénarios se sauvegardent dans le navigateur.</p>
+          </div>
+          <div class="card">
             <h3>Napoléon en personne</h3>
             <p class="p">Tant que l'Empereur tient le champ de bataille, toutes les unités fran&ccedil;aises gagnent <b>+22&nbsp;% de combat</b> et <b>+15 de moral</b>, et le moral se reconstitue bien plus vite dans un rayon de 320&nbsp;px autour de lui. La capacité <b>Pr&eacute;sence imp&eacute;riale</b> (E) galvanise l'arm&eacute;e enti&egrave;re pendant 18&nbsp;s.</p>
           </div>
@@ -237,6 +315,7 @@
 <script src="js/combat.js"></script>
 <script src="js/ai.js"></script>
 <script src="js/render.js"></script>
+<script src="js/sandbox.js"></script>
 <script src="js/input.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/ui.js"></script>

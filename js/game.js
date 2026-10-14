@@ -29,7 +29,23 @@ class World {
     this.deaths = [];
     this.view = { zoom: 1, ox: 0, oy: 0 };
 
-    for (const f of camp.forts || []) this.forts.push(new Fort(f, f.side));
+    // Les fortifications sont synchronisées avec les features de la carte,
+    // afin que l'éditeur du bac à sable puisse en ajouter ou en retirer.
+    this.forts = [];
+    this.syncForts();
+  }
+
+  /** recrée la liste des fortifications depuis les features de type 'fort' */
+  syncForts() {
+    const wanted = this.map.features.filter((f) => f.type === 'fort');
+    // on retire celles qui ont disparu
+    this.forts = this.forts.filter((fo) => wanted.some((f) => f.id === fo.fid));
+    for (const f of wanted) {
+      if (this.forts.some((fo) => fo.fid === f.id)) continue;
+      const fort = new Fort(f, f.side || 'en');
+      fort.fid = f.id;
+      this.forts.push(fort);
+    }
   }
 
   byId(id) { return this.units.find((u) => u.id === id); }
@@ -78,14 +94,15 @@ class World {
 
   /* ---- projectiles ---- */
   spawnShell(from, target, dmg) {
-    const D = from.def;
+    const isFort = from.kind === 'fort';
+    const D = from.def || {};
     this.shells.push({
-      x: from.x + Math.cos(from.facing) * 14,
-      y: from.y + Math.sin(from.facing) * 14,
-      facing: from.facing,
-      speed: D.key === 'ART' ? D.shellSpeed || 400 : 520,
+      x: from.x + Math.cos(from.facing || 0) * 14,
+      y: from.y + Math.sin(from.facing || 0) * 14,
+      facing: from.facing || 0,
+      speed: D.key === 'ART' ? (D.shellSpeed || 430) : 520,
       dmg, from, target,
-      splash: from.kind === 'fort' ? 0 : (D.splash || 0),
+      splash: isFort ? 0 : (D.splash || 0),
     });
   }
 
@@ -198,6 +215,44 @@ const Game = {
     const $ = UI.$;
     $('btn-howto').addEventListener('click', () => { this.prevScreen = 'menu'; UI.show('howto'); this.screen = 'howto'; });
     $('btn-howto-close').addEventListener('click', () => this.closeHowto());
+
+    /* ---------- bac à sable ---------- */
+    $('btn-sandbox').addEventListener('click', () => this.openSandbox());
+    $('sb-brush').addEventListener('input', (e) => {
+      Sandbox.brush = +e.target.value;
+      $('sb-brush-val').textContent = Sandbox.brush;
+    });
+    $('sb-wallw').addEventListener('input', (e) => {
+      Sandbox.wallW = +e.target.value;
+      $('sb-wallw-val').textContent = Sandbox.wallW;
+    });
+    $('sb-title').addEventListener('input', (e) => { Sandbox.name = e.target.value; });
+    for (const b of document.querySelectorAll('#sb-palette .sb-side')) {
+      b.addEventListener('click', () => {
+        if (b.dataset.side) { Sandbox.side = b.dataset.side; Sandbox.tool = 'unit'; }
+        if (b.dataset.fortside) Sandbox.fortSide = b.dataset.fortside;
+        UI.buildSandboxPanels(Sandbox);
+      });
+    }
+    $('sb-clear').addEventListener('click', () => { this.openSandbox(); UI.banner('CARTE VIERGE'); });
+    $('sb-save').addEventListener('click', () => {
+      Sandbox.name = $('sb-title').value;
+      const rec = Sandbox.save(Sandbox.name);
+      UI.banner(rec ? 'SCÉNARIO ENREGISTRÉ' : 'ENREGISTREMENT IMPOSSIBLE');
+    });
+    $('sb-load').addEventListener('click', () => {
+      UI.buildSandboxHome();
+      $('sb-loadscreen').classList.remove('hidden');
+    });
+    $('sb-load-close').addEventListener('click', () => $('sb-loadscreen').classList.add('hidden'));
+    $('sb-load-new').addEventListener('click', () => {
+      $('sb-loadscreen').classList.add('hidden');
+      this.openSandbox();
+    });
+    $('sb-fight').addEventListener('click', () => this.startSandboxBattle());
+    $('sb-edit').addEventListener('click', () => this.backToSandboxEdit());
+    $('sb-finish').addEventListener('click', () => this.finishSandbox());
+    $('sb-exit').addEventListener('click', () => this.quitSandbox());
     $('btn-reset').addEventListener('click', () => {
       this.progress = { max: 1, done: [] };
       this.saveProgress();
@@ -292,6 +347,7 @@ const Game = {
 
   /* ---------- préparation ---------- */
   startDeploy() {
+    document.body.classList.remove('mode-sandbox');
     const camp = this.camp;
     U.srand(camp.seed || 7);
     const w = new World(camp, this);
@@ -549,13 +605,12 @@ const Game = {
       if (!this.paused) {
         const steps = this.speed;
         for (let i = 0; i < steps; i++) this.tick(dtReal);
-      } else {
-        this.world.fx.update(0);
       }
       UI.syncTopbar(this);
       UI.syncUnitCard(this);
       UI.syncRoster(this);
       UI.syncAuraCard(this);
+      if (this.world.camp.sandbox) UI.updateSandboxCounts();
       this.checkEnd();
     } else if (this.world) {
       this.world.fx.update(dtReal);
@@ -629,12 +684,13 @@ const Game = {
 
     if (!mineFighting) return this.finish(false, "Toutes les unités françaises ont rompu le contact.");
 
-    // l'Empereur est hors de combat
+    // l'Empereur ne décide du sort de la bataille que s'il est sur le terrain
     const emp = w.units.find((u) => u.side === 'fr' && u.imperial);
-    if (!emp || !emp.alive) return this.finish(false, "Napoléon a été mis hors de combat. Sans lui, l'armée se débande.");
+    if (emp && !emp.alive) return this.finish(false, "Napoléon a été mis hors de combat. Sans lui, l'armée se débande.");
 
-    // à bout de forces : la nuit tombe, on juge sur la balance des pertes
-    if (w.time > 600) {
+    // bac à sable : pas de limite de temps, la partie dure aussi longtemps qu'on veut
+    const limit = w.camp.timeLimit === 0 ? Infinity : (w.camp.timeLimit || 600);
+    if (w.time > limit) {
       const f = this.effective('fr'), e = this.effective('en');
       if (f >= e) return this.finish(true);
       return this.finish(false, "La nuit tombe sur un combat indécis ; le rapport des pertes est défavorable.");
@@ -649,6 +705,133 @@ const Game = {
       s += u.men * (u.cls === 'CAV' ? 1.3 : u.cls === 'ART' ? 0.8 : 1) * (0.35 + 0.65 * u.morale / Math.max(1, u.maxMorale));
     }
     return s;
+  },
+
+  /* ============================================================
+     SCÉNARIOS PERSONNALISÉS — bac à sable
+     ============================================================ */
+
+  sandboxRecord: null,
+
+  /** démarre un bac à sable (vierge ou rechargé depuis un scénario enregistré) */
+  openSandbox(record) {
+    const rec = record || { name: 'Mon scénario', w: 1440, h: 900, features: [], units: [] };
+    const camp = {
+      id: 'sandbox', num: 0, sandbox: true,
+      name: rec.name, date: 'Bac à sable', place: 'Terrain libre',
+      seed: 1234, brief: [], objectives: [], commanders: [],
+      map: {
+        w: rec.w, h: rec.h,
+        water: [], rivers: [], roads: [], walls: [], bridges: [],
+        terrain: [], towns: [], forts: [], objectives: [],
+      },
+      deploy: {
+        fr: { x: 0, y: 0, w: rec.w, h: rec.h },
+        en: { x: 0, y: 0, w: rec.w, h: rec.h },
+      },
+      player: [], enemy: [],
+      timeLimit: 0,        // temps infini
+      freeForces: true,    // renforts libres en cours de bataille
+    };
+
+    U.srand(4242);
+    const w = new World(camp, this);
+    this.world = w;
+    this.camp = camp;
+    this.sandboxRecord = rec;
+
+    for (const f of rec.features || []) {
+      const c = Object.assign({}, f);
+      delete c._z; delete c.__b;
+      w.map.features.push(c);
+    }
+    w.map.rebuild();
+    w.syncForts();
+
+    for (const u of rec.units || []) {
+      w.units.push(new Unit({
+        side: u.side, cls: u.cls, quality: u.quality || 'line',
+        name: u.name || CLASSES[u.cls].name, x: u.x, y: u.y,
+      }));
+    }
+
+    // un jeu d'unités de départ pour ne jamais tomber sur une carte vide
+    if (!w.units.length) {
+      this.sandboxSeedUnits({ x: rec.w * 0.13, y: rec.h * 0.5 }, 'fr');
+      this.sandboxSeedUnits({ x: rec.w * 0.87, y: rec.h * 0.5 }, 'en');
+    }
+
+    w.phase = 'sandbox';
+    w.startMen = w.totalMen('fr');
+    Sandbox.reset();
+    Sandbox.name = rec.name || 'Mon scénario';
+
+    UI.buildRoster(this);
+    this.screen = 'sandbox';
+    UI.buildSandboxPanels(Sandbox);
+    UI.show('sandbox');
+    this.fitView();
+    this.audio.ensure();
+  },
+
+  sandboxSeedUnits(p, side) {
+    const w = this.world;
+    const kit = side === 'fr'
+      ? [['INF', 'line'], ['INF', 'veteran'], ['CAV', 'veteran'], ['ART', 'line'], ['SAP', 'veteran'], ['NCO', 'line'], ['CMD', 'line'], ['EMP', 'line']]
+      : [['INF', 'line'], ['INF', 'line'], ['CAV', 'line'], ['ART', 'line'], ['NCO', 'line']];
+    kit.forEach((k, i) => {
+      const x = p.x + (i % 2) * 48 - 24;
+      const y = p.y + Math.floor(i / 2) * 48 - 72;
+      const pos = w.map.nearestFree(x, y, k[0], 220);
+      w.units.push(new Unit({
+        side, cls: k[0], quality: k[1], name: CLASSES[k[0]].name, x: pos.x, y: pos.y,
+      }));
+    });
+  },
+
+  /** passe du mode édition au combat : temps illimité, renforts libres */
+  startSandboxBattle() {
+    const w = this.world;
+    w.phase = 'battle';
+    w.time = 0;
+    w.startMen = w.totalMen('fr');
+    w.captured = 0;
+    w.deaths = [];
+    w.reinforced = true;              // pas de renforts automatiques
+    this.paused = false;
+    this.speed = 1;
+    this.syncSpeedButtons();
+    this.ai = new Commander(w, 'en', w.camp);
+    Sandbox.tool = 'unit';
+    this.screen = 'battle';
+    UI.buildSandboxPanels(Sandbox);
+    UI.show('battle');
+    UI.banner('COMBAT LIBRE — TEMPS ILLIMITÉ');
+    this.audio.ensure();
+  },
+
+  /** retourne à l'édition en conservant l'état du combat */
+  backToSandboxEdit() {
+    this.world.phase = 'sandbox';
+    this.paused = false;
+    Sandbox.tool = 'select';
+    this.screen = 'sandbox';
+    UI.buildSandboxPanels(Sandbox);
+    UI.show('sandbox');
+  },
+
+  /** termine la partie du bac à sable */
+  finishSandbox() {
+    if (this.world.phase === 'battle') this.finish(true, "Fin de la partie déclarée.");
+    else this.quitSandbox();
+  },
+
+  quitSandbox() {
+    this.world = null;
+    this.screen = 'menu';
+    document.body.classList.remove('mode-sandbox');
+    UI.show('menu');
+    UI.buildCampaignList(this);
   },
 
   finish(win, reason) {
@@ -671,7 +854,7 @@ const Game = {
                 : (reason || "Les forces françaises ont été vaincues sur ce champ de bataille."),
     };
 
-    if (win) {
+    if (win && !w.camp.sandbox) {
       if (!this.progress.done.includes(w.camp.id)) this.progress.done.push(w.camp.id);
       const next = CAMPAIGNS[w.camp.num];
       if (next && this.progress.max < next.num) this.progress.max = next.num;
@@ -679,6 +862,17 @@ const Game = {
       UI.buildCampaignList(this);
     }
     this.audio.fanfare(win);
+    if (w.camp.sandbox) {
+      setTimeout(() => {
+        this.screen = 'menu';
+        this.world = null;
+        document.body.classList.remove('mode-sandbox');
+        UI.show('menu');
+        UI.buildSandboxHome();
+        UI.banner('PARTIE TERMINÉE');
+      }, 900);
+      return;
+    }
     setTimeout(() => UI.result(this, win, stats), 900);
   },
 };

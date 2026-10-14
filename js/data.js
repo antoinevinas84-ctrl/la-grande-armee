@@ -105,7 +105,29 @@ const TERRAIN = {
   rock:    { name: 'Roc',      speed: 0.55, cover: 1.45, color: '#9d9d90' },
   water:   { name: 'Eau',      speed: 0.00, cover: 1.00, color: '#3d6ea8' },
   river:   { name: 'Rivière',  speed: 0.30, cover: 0.70, color: '#4a86c8' },
+  wall:    { name: 'Mur',      speed: 0.90, cover: 1.35, color: '#7a6a4a' },
 };
+
+/** kinds que l'on peut peindre dans l'éditeur */
+const PAINT_KINDS = [
+  { key: 'plain',   label: 'Plaine' },
+  { key: 'forest',  label: 'Forêt' },
+  { key: 'hill',    label: 'Butte' },
+  { key: 'village', label: 'Village' },
+  { key: 'marsh',   label: 'Marais' },
+  { key: 'rock',    label: 'Roc' },
+];
+
+/* ---------- Palette d'unités du bac à sable ---------- */
+const SANDBOX_UNITS = [
+  { key: 'INF', label: 'Infanterie' },
+  { key: 'CAV', label: 'Cavalerie' },
+  { key: 'ART', label: 'Artillerie' },
+  { key: 'SAP', label: 'Sapeur / choc' },
+  { key: 'CMD', label: 'Commandant' },
+  { key: 'NCO', label: 'Chef de troupe' },
+  { key: 'EMP', label: 'Napoléon' },
+];
 
 /* ============================================================
    CAMPAGNES

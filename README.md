@@ -88,9 +88,55 @@ souvent la défaite. La touche `E` déclenche la **Présence impériale** :
 | VII | Leipzig | 16-19 octobre 1813 | ★★★★★ |
 | VIII | Waterloo | 18 juin 1815 | ★★★★★ |
 
+Et, en plus des campagnes, le **bac à sable** décrit plus bas.
+
 Chaque campagne a sa carte (rivières, ponts, forêts, buttes, villages,
 fortifications), ses ordres, son briefing, ses renforts et ses objectifs.
 La progression est enregistrée dans le navigateur (`localStorage`).
+
+---
+
+## 🏰 Scénarios personnalisés — le bac à sable
+
+Un neuvième mode, accessible depuis le menu principal : **carte vierge, tout
+modifiable, temps illimité**. Composez votre champ de bataille, puis lancez une
+bataille qui peut durer aussi longtemps que vous le voulez.
+
+### Outils de l'éditeur
+
+| Outil | Effet |
+|---|---|
+| **Sélection** | Cliquez une unité et déplacez-la ; `Suppr` pour la supprimer |
+| **Peindre** | Peignez forêts, buttes, villages, marais, rochers (taille réglable) |
+| **Mur / fort** | Tracez un mur : **infranchissable**, et **+35 % de défense** pour qui s'y appuie — de quoi batir une真正的 forteresse |
+| **Rivière** | Cavalerie et artillerie ne la franchissent qu'aux ponts |
+| **Route** | Les unités y avancent 60 % plus vite |
+| **Pont** | Se pose sur une rivière |
+| **Redoute** | Ouvrage fortifié qui tire sur les ennemis — français ou adverse |
+| **Village** | Village : couvert de +32 % |
+| **Étendue d'eau** | Lac ou mer, totalement infranchissable |
+| **Ajouter une troupe** | Pose l'unité de la palette où vous voulez, sur le camp de votre choix |
+| **Gomme** | Supprime une unité, un mur, une rivière, une redoute… |
+
+### Particularités
+
+- **Placement totalement libre** : pas de zone de déploiement, chaque unité est
+  là où vous la posez.
+- **Temps illimité** : la limite de 10 minutes des campagnes n'existe plus ici.
+  Vous pouvez ensuite ➕ **ajouter des renforts en plein combat** pour faire
+  grossir la bataille autant que voulu.
+- **Retour en édition** à tout moment : on peut corriger le terrain en cours de
+  partie, ou juste dans l'état, puis reprendre.
+- **Sauvegarde** : jusqu'à 20 scénarios enregistrés dans le navigateur
+  (décor + unités + positions), rechargeables à volonté.
+
+### Raccourcis de l'éditeur
+
+`1` sélection · `2` peindre · `3` mur · `4` rivière · `5` route · `6` pont ·
+`7` redoute · `8` village · `9` eau · `0` ajouter une troupe · `X` gomme ·
+`Entrée` lancer le combat · `Suppr` effacer la sélection · `Échap` revenir
+
+La molette règle la taille du pinceau. `Maj` + clic inverse le camp des unités.
 
 ## Structure du projet
 
@@ -107,6 +153,7 @@ napoleon-2d/
     ├── combat.js   auras, acquisition des cibles, tirs, dégâts, projectiles
     ├── ai.js       commandement ennemi : rôles, échelons, charge de flanc
     ├── render.js   rendu du terrain, des symboles, des effets, du HUD
+    ├── sandbox.js  bac à sable : outils d'édition, sauvegarde des scénarios
     ├── input.js    souris et clavier, sélection, ordres
     ├── audio.js    sons de synthèse (WebAudio), aucun fichier externe
     ├── ui.js       écrans, fiches d'unités, barre d'unités, infobulles

@@ -33,6 +33,23 @@ const Input = {
     this.downPos = { x: e.clientX, y: e.clientY };
     g.audio.ensure();
 
+    /* ---------- bac à sable (mode édition) ---------- */
+    if (g.screen === 'sandbox' && g.world && g.world.phase === 'sandbox') {
+      if (e.button === 0) {
+        if (Sandbox.tool === 'select') {
+          const u = g.unitAt(w.x, w.y);
+          if (u) { g.selectOnly(u.id); g.dragUnit = u; }
+          else g.clearSelection();
+        } else {
+          Sandbox.beginDraw(w.x, w.y);
+        }
+      } else if (e.button === 2) {
+        if (Sandbox.tool === 'select') g.clearSelection();
+        else Sandbox.clickAt(w.x, w.y, e.shiftKey);
+      }
+      return;
+    }
+
     if (e.button === 0) {
       if (g.world.phase === 'deploy') {
         const u = g.unitAt(w.x, w.y);
@@ -70,7 +87,22 @@ const Input = {
 
     const g = this.game;
     g.world.hover = g.unitAt(this.mouse.wx, this.mouse.wy);
-    g.updateTooltip(e.clientX, e.clientY);
+    Sandbox.hoverX = this.mouse.wx;
+    Sandbox.hoverY = this.mouse.wy;
+
+    if (g.screen === 'sandbox' && g.world.phase === 'sandbox') {
+      if (this.dragUnit) {
+        // déplacement d'unité dans l'éditeur
+        const p = g.world.map.nearestFree(this.mouse.wx, this.mouse.wy, this.dragUnit.cls, 200);
+        this.dragUnit.x = p.x; this.dragUnit.y = p.y;
+      } else if (this.mouse.down && (Sandbox.drag || Sandbox.painting)) {
+        Sandbox.extendDraw(this.mouse.wx, this.mouse.wy);
+      }
+      g.syncPanel();
+      return;
+    }
+
+    if (g.screen === 'battle' || g.screen === 'deploy') g.updateTooltip(e.clientX, e.clientY);
 
     if (this.dragDeploy && this.mouse.down) {
       this.dragDeploy.u.x = this.mouse.wx;
@@ -84,7 +116,18 @@ const Input = {
 
   onUp(e) {
     const g = this.game;
-    if (this.dragDeploy) { this.dragDeploy = null; this.mouse.down = false; return; }
+    this.mouse.down = false;
+
+    if (g.screen === 'sandbox' && g.world && g.world.phase === 'sandbox') {
+      if (this.dragUnit) { this.dragUnit = null; UI.updateSandboxCounts(); return; }
+      if (e.button === 0 && (Sandbox.drag || Sandbox.painting)) {
+        Sandbox.endDraw(this.mouse.wx, this.mouse.wy);
+        UI.updateSandboxCounts();
+      }
+      return;
+    }
+
+    if (this.dragDeploy) { this.dragDeploy = null; return; }
 
     if (e.button === 0 && g.dragBox) {
       const b = g.dragBox;
@@ -105,13 +148,22 @@ const Input = {
       g.dragBox = null;
       g.syncPanel();
     }
-    this.mouse.down = false;
   },
 
   onWheel(e) {
     e.preventDefault();
     const g = this.game;
     const v = g.world.view;
+
+    // dans l'éditeur, la molette règle la taille du pinceau
+    if (g.screen === 'sandbox' && g.world.phase === 'sandbox' &&
+        (Sandbox.tool === 'paint' || Sandbox.tool === 'water')) {
+      e.preventDefault();
+      Sandbox.brush = U.clamp(Sandbox.brush + (e.deltaY < 0 ? 6 : -6), 16, 160);
+      UI.buildSandboxPanels(Sandbox);
+      return;
+    }
+
     const before = { x: (e.clientX - v.ox) / v.zoom, y: (e.clientY - v.oy) / v.zoom };
     v.zoom = U.clamp(v.zoom * (e.deltaY < 0 ? 1.12 : 1 / 1.12), 0.35, 2.6);
     v.ox = e.clientX - before.x * v.zoom;
@@ -123,11 +175,48 @@ const Input = {
     const g = this.game;
     const k = e.key.toLowerCase();
 
+    /* ---------- bac à sable ---------- */
+    if (g.screen === 'sandbox') {
+      if (k === 'escape') {
+        if (!document.getElementById('sb-loadscreen').classList.contains('hidden')) {
+          document.getElementById('sb-loadscreen').classList.add('hidden');
+          return;
+        }
+        if (g.world && g.world.phase === 'battle') g.backToSandboxEdit();
+        else g.quitSandbox();
+        return;
+      }
+      if (k === 'delete' || k === 'backspace') {
+        for (const u of g.selectedUnits()) g.world.units.splice(g.world.units.indexOf(u), 1);
+        UI.buildRoster(g);
+        UI.updateSandboxCounts();
+        g.clearSelection();
+        return;
+      }
+      if (g.world && g.world.phase === 'battle') return this.battleKeys(e, k, g);
+
+      // raccourcis d'outils
+      const map = { '1': 'select', '2': 'paint', '3': 'wall', '4': 'river', '5': 'road', '6': 'bridge', '7': 'fort', '8': 'town', '9': 'water', '0': 'unit' };
+      if (map[k]) { Sandbox.tool = map[k]; UI.buildSandboxPanels(Sandbox); return; }
+      if (k === 'x') {
+        Sandbox.tool = 'erase';
+        UI.buildSandboxPanels(Sandbox);
+        return;
+      }
+      if (k === ' ') { e.preventDefault(); g.zoomBy(1.12); return; }
+      if (k === 'enter') { g.startSandboxBattle(); return; }
+      return;
+    }
+
     if (g.screen !== 'battle') {
       if (k === 'escape' && g.screen === 'howto') g.closeHowto();
       return;
     }
+    this.battleKeys(e, k, g);
+  },
 
+  battleKeys(e, k, g) {
+    if (g.screen !== 'battle') return;
     switch (k) {
       case ' ': e.preventDefault(); g.togglePause(); break;
       case '1': g.setSpeed(1); break;

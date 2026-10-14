@@ -310,6 +310,7 @@ class Unit {
 class Fort {
   constructor(def, side) {
     this.kind = 'fort';
+    this.fid = def.id;
     this.id = 'F' + def.name;
     this.name = def.name;
     this.x = def.x; this.y = def.y; this.r = def.r || 28;
